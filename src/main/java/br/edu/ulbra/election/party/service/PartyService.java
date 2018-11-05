@@ -26,30 +26,31 @@ public class PartyService {
     private static final String MESSAGE_PARTY_NOT_FOUND = "Party not found";
 
     @Autowired
-    public PartyService(PartyRepository partyRepository, ModelMapper modelMapper){
+    public PartyService(PartyRepository partyRepository, ModelMapper modelMapper) {
         this.partyRepository = partyRepository;
         this.modelMapper = modelMapper;
     }
 
-    public List<PartyOutput> getAll(){
-        Type partyOutputListType = new TypeToken<List<PartyOutput>>(){}.getType();
+    public List<PartyOutput> getAll() {
+        Type partyOutputListType = new TypeToken<List<PartyOutput>>() {
+        }.getType();
         return modelMapper.map(partyRepository.findAll(), partyOutputListType);
     }
 
     public PartyOutput create(PartyInput partyInput) {
-        validateInput(partyInput, false);
+        validateInput(partyInput, false, null);
         Party party = modelMapper.map(partyInput, Party.class);
         party = partyRepository.save(party);
         return modelMapper.map(party, PartyOutput.class);
     }
 
-    public PartyOutput getById(Long partyId){
-        if (partyId == null){
+    public PartyOutput getById(Long partyId) {
+        if (partyId == null) {
             throw new GenericOutputException(MESSAGE_INVALID_ID);
         }
 
         Party party = partyRepository.findById(partyId).orElse(null);
-        if (party == null){
+        if (party == null) {
             throw new GenericOutputException(MESSAGE_PARTY_NOT_FOUND);
         }
 
@@ -57,13 +58,13 @@ public class PartyService {
     }
 
     public PartyOutput update(Long partyId, PartyInput partyInput) {
-        if (partyId == null){
+        if (partyId == null) {
             throw new GenericOutputException(MESSAGE_INVALID_ID);
         }
-        validateInput(partyInput, true);
+        validateInput(partyInput, true, partyId);
 
         Party party = partyRepository.findById(partyId).orElse(null);
-        if (party == null){
+        if (party == null) {
             throw new GenericOutputException(MESSAGE_PARTY_NOT_FOUND);
         }
 
@@ -76,12 +77,12 @@ public class PartyService {
     }
 
     public GenericOutput delete(Long partyId) {
-        if (partyId == null){
+        if (partyId == null) {
             throw new GenericOutputException(MESSAGE_INVALID_ID);
         }
 
         Party party = partyRepository.findById(partyId).orElse(null);
-        if (party == null){
+        if (party == null) {
             throw new GenericOutputException(MESSAGE_PARTY_NOT_FOUND);
         }
 
@@ -90,15 +91,33 @@ public class PartyService {
         return new GenericOutput("Party deleted");
     }
 
-    private void validateInput(PartyInput partyInput, boolean isUpdate){
+    private void validateInput(PartyInput partyInput, boolean isUpdate, Long partyId) {
+        if (isUpdate) {
+            Party party = partyRepository.findById(partyId).orElse(null);
+            if (party != null) {
+                if ((!party.getCode().equals(partyInput.getCode())) && (partyRepository.findByCode(partyInput.getCode()) != null)) {
+                    throw new GenericOutputException("Invalid code. This code is already taken");
+                }
+                if ((!party.getNumber().equals(partyInput.getNumber())) && (partyRepository.findByNumber(partyInput.getNumber()) != null)) {
+                    throw new GenericOutputException("Invalid number. This number is already taken");
+                }
+            }
+        } else {
+            if (partyRepository.findByCode(partyInput.getCode()) != null) {
+                throw new GenericOutputException("Invalid code. This code is already taken");
+            }
+            if (partyRepository.findByNumber(partyInput.getNumber()) != null) {
+                throw new GenericOutputException("Invalid number. This number is already taken");
+            }
+        }
 
-        if (StringUtils.isBlank(partyInput.getName())){
+        if (StringUtils.isBlank(partyInput.getName())) {
             throw new GenericOutputException("Invalid name");
         }
-        if (StringUtils.isBlank(partyInput.getCode())){
+        if (StringUtils.isBlank(partyInput.getCode())) {
             throw new GenericOutputException("Invalid code");
         }
-        if (partyInput.getNumber() == null){
+        if ((partyInput.getNumber() == null) || ((partyInput.getNumber() < 10) || (partyInput.getNumber() > 99))) {
             throw new GenericOutputException("Invalid number");
         }
     }
