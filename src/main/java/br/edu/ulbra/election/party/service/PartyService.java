@@ -100,7 +100,7 @@ public class PartyService {
             CandidateOutput candidate;
             for (int i = 0; i < candidates.size(); i++) {
                 candidate = candidates.get(i);
-                if (candidate.getPartyOutput().getId() == id) {
+                if (candidate.getPartyOutput().getId().equals(id)) {
                     throw new GenericOutputException("This party already has candidate");
                 }
             }
